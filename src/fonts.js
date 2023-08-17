@@ -308,10 +308,13 @@ function updateHead(editor, fonts) {
         insert(doc, GOOGLE_FONTS_ATTR, 'link', { 'href': `https://fonts.googleapis.com/css?family=${f.name.replace(/ /g, '+')}${variants}&display=swap`, 'rel': 'stylesheet' })
     })
 
-    // add global font in css of intire HTML DOM
-  doc.head.insertAdjacentHTML('beforeend', `<style>*{font-family: ${globalFont}}</style>`)
-  // add font to style while exporting
-  editor.Css.setRule('*', { 'font-family': `${globalFont}` })
+    // only if user select any global font
+    if (globalFont !== undefined) {
+        // add global font in css of intire HTML DOM
+      doc.head.insertAdjacentHTML('beforeend', `<style>*{font-family: ${globalFont}}</style>`)
+      // add font to style while exporting
+      editor.Css.setRule('*', { 'font-family': `${globalFont}` })
+    }
 }
 
 function updateUi(editor, fonts, opts) {
