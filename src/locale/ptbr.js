@@ -8,5 +8,6 @@ export default {
         'Save': 'Salvar',
         'Cancel': 'Cancelar',
         'Installed fonts': 'Fontes instaladas',
+        'Global Font': 'Fonte global'
     },
 }

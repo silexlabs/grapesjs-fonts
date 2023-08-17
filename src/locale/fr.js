@@ -9,6 +9,7 @@ export default {
         'Save': 'Enregistrer',
         'Cancel': 'Annuler',
         'Installed fonts': 'Polices installées',
+        'Global Font': 'Police globale'
     },
 }
 
