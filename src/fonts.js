@@ -20,6 +20,7 @@ const LS_FONTS = 'silex-loaded-fonts-list'
 let _fontsList
 let fonts
 let defaults = []
+let globalFont
 
 /**
  * Load available fonts only once per session
@@ -232,6 +233,17 @@ function displayFonts(editor, config, fontsList) {
           </li>
         `) }
         </ol>
+        <h2>${editor.I18n.t('grapesjs-fonts.Global Font')}</h2>
+          <select
+            name="fonts"
+            @change=${(e) => {
+              globalFont = e.target.value
+              console.log(globalFont)
+            }}
+          >
+            <option value="null">select</option>
+            ${map(fonts, (font) => html` <option value="${font.value}">${font.name}</option> `)}
+          </select>
       </div>
       <footer>
         <input class="silex-button" type="button" @click=${() => editor.stopCommand(cmdOpenFonts)} value="${editor.I18n.t('grapesjs-fonts.Cancel')}">
@@ -295,6 +307,11 @@ function updateHead(editor, fonts) {
         const variants = prefix + f.variants.map(v => v.replace(/\d+/g, '')).filter(v => !!v).join(',')
         insert(doc, GOOGLE_FONTS_ATTR, 'link', { 'href': `https://fonts.googleapis.com/css?family=${f.name.replace(/ /g, '+')}${variants}&display=swap`, 'rel': 'stylesheet' })
     })
+
+    // add global font in css of intire HTML DOM
+  doc.head.insertAdjacentHTML('beforeend', `<style>*{font-family: ${globalFont}}</style>`)
+  // add font to style while exporting
+  editor.Css.setRule('*', { 'font-family': `${globalFont}` })
 }
 
 function updateUi(editor, fonts, opts) {
