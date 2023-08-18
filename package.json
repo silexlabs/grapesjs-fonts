@@ -22,6 +22,7 @@
     "typography"
   ],
   "devDependencies": {
+    "@babel/runtime": "^7.22.10",
     "eslint": "^8.28.0",
     "grapesjs-cli": "^3.0.1"
   },
