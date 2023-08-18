@@ -1,86 +1,86 @@
-import { html, render } from 'lit-html';
-import { live } from 'lit-html/directives/live.js';
-import { map } from 'lit-html/directives/map.js';
-import { styleMap } from 'lit-html/directives/style-map.js';
-import { ref, createRef } from 'lit-html/directives/ref.js';
+import { html, render } from 'lit-html'
+import { live } from 'lit-html/directives/live.js'
+import { map } from 'lit-html/directives/map.js'
+import { styleMap } from 'lit-html/directives/style-map.js'
+import { ref, createRef } from 'lit-html/directives/ref.js'
 
-const el = document.createElement('div');
-let modal;
+const el = document.createElement('div')
+let modal
 
-export const cmdOpenFonts = 'open-fonts';
+export const cmdOpenFonts = 'open-fonts'
 
 /**
  * Constants
  */
-const LS_FONTS = 'silex-loaded-fonts-list';
+const LS_FONTS = 'silex-loaded-fonts-list'
 
 /**
  * Module variables
  */
-let _fontsList;
-let fonts;
-let defaults = [];
-let globalFont;
+let _fontsList
+let fonts
+let defaults = []
+let globalFont
 
 /**
  * Load available fonts only once per session
  * Use local storage
  */
 try {
-  _fontsList = JSON.parse(localStorage.getItem(LS_FONTS));
+  _fontsList = JSON.parse(localStorage.getItem(LS_FONTS))
 } catch (e) {
-  console.error('Could not get fonts from local storage:', e);
+  console.error('Could not get fonts from local storage:', e)
 }
 
 /**
  * Promised wait function
  */
 async function wait(ms = 0) {
-  return new Promise((resolve) => setTimeout(() => resolve(), ms));
+  return new Promise((resolve) => setTimeout(() => resolve(), ms))
 }
 
 /**
  * When the dialog is opened
  */
 async function loadFonts(editor) {
-  fonts = structuredClone(editor.getModel().get('fonts') || []);
+  fonts = structuredClone(editor.getModel().get('fonts') || [])
 }
 
 /**
  * When the dialog is closed
  */
 function saveFonts(editor, opts) {
-  const model = editor.getModel();
+  const model = editor.getModel()
 
   // Store the modified fonts
-  model.set('fonts', fonts);
+  model.set('fonts', fonts)
 
   // Update the HTML head with style sheets to load
-  updateHead(editor, fonts);
+  updateHead(editor, fonts)
 
   // Update the "font family" dropdown
-  updateUi(editor, fonts, opts);
+  updateUi(editor, fonts, opts)
 
   // Save website if auto save is on
-  model.set('changesCount', editor.getDirtyCount() + 1);
+  model.set('changesCount', editor.getDirtyCount() + 1)
 }
 
 /**
  * Load the available fonts from google
  */
 async function loadFontList(url) {
-  _fontsList = _fontsList ?? (await (await fetch(url)).json())?.items;
-  localStorage.setItem(LS_FONTS, JSON.stringify(_fontsList));
-  await wait(); // let the dialog open
-  return _fontsList;
+  _fontsList = _fontsList ?? (await (await fetch(url)).json())?.items
+  localStorage.setItem(LS_FONTS, JSON.stringify(_fontsList))
+  await wait() // let the dialog open
+  return _fontsList
 }
 
 export const fontsDialogPlugin = (editor, opts) => {
-  defaults = editor.StyleManager.getBuiltIn('font-family').options;
+  defaults = editor.StyleManager.getBuiltIn('font-family').options
   if (!opts.api_key)
     throw new Error(
       editor.I18n.t('grapesjs-fonts.You must provide Google font api key'),
-    );
+    )
   editor.Commands.add(cmdOpenFonts, {
     /* eslint-disable-next-line */
     run: (_, sender) => {
@@ -89,60 +89,60 @@ export const fontsDialogPlugin = (editor, opts) => {
         content: '',
         attributes: { class: 'fonts-dialog' },
       }).onceClose(() => {
-        editor.stopCommand(cmdOpenFonts); // apparently this is needed to be able to run the command several times
-      });
-      modal.setContent(el);
-      loadFonts(editor);
-      displayFonts(editor, opts, []);
+        editor.stopCommand(cmdOpenFonts) // apparently this is needed to be able to run the command several times
+      })
+      modal.setContent(el)
+      loadFonts(editor)
+      displayFonts(editor, opts, [])
       loadFontList(
         'https://www.googleapis.com/webfonts/v1/webfonts?key=' + opts.api_key,
       ).then((fontsList) => {
         // the run command will terminate before this is done, better for performance
-        displayFonts(editor, opts, fontsList);
-        const form = el.querySelector('form');
+        displayFonts(editor, opts, fontsList)
+        const form = el.querySelector('form')
         form.onsubmit = (event) => {
-          event.preventDefault();
-          saveFonts(editor, opts);
-          editor.stopCommand(cmdOpenFonts);
-        };
-        form.querySelector('input')?.focus();
-      });
-      return modal;
+          event.preventDefault()
+          saveFonts(editor, opts)
+          editor.stopCommand(cmdOpenFonts)
+        }
+        form.querySelector('input')?.focus()
+      })
+      return modal
     },
     stop: () => {
-      modal.close();
+      modal.close()
     },
-  });
+  })
   // add fonts to the website
   editor.on('storage:start:store', (data) => {
-    data.fonts = editor.getModel().get('fonts');
-  });
+    data.fonts = editor.getModel().get('fonts')
+  })
   editor.on('storage:end:load', (data) => {
-    const fonts = data.fonts || [];
-    editor.getModel().set('fonts', fonts);
+    const fonts = data.fonts || []
+    editor.getModel().set('fonts', fonts)
     setTimeout(() => {
-      updateHead(editor, fonts);
-      updateUi(editor, fonts, opts);
-    });
-  });
-};
-
-function match(hay, s) {
-  const regExp = new RegExp(s, 'i');
-  return hay.search(regExp) !== -1;
+      updateHead(editor, fonts)
+      updateUi(editor, fonts, opts)
+    })
+  })
 }
 
-const searchInputRef = createRef();
-const fontRef = createRef();
+function match(hay, s) {
+  const regExp = new RegExp(s, 'i')
+  return hay.search(regExp) !== -1
+}
+
+const searchInputRef = createRef()
+const fontRef = createRef()
 
 function displayFonts(editor, config, fontsList) {
-  const searchInput = searchInputRef.value;
+  const searchInput = searchInputRef.value
   const activeFonts = fontsList.filter((f) =>
     match(f.family, searchInput?.value || ''),
-  );
-  searchInput?.focus();
+  )
+  searchInput?.focus()
   function findFont(font) {
-    return fontsList.find((f) => font.name === f.family);
+    return fontsList.find((f) => font.name === f.family)
   }
   render(
     html`
@@ -158,7 +158,7 @@ function displayFonts(editor, config, fontsList) {
               ${ref(searchInputRef)}
               @keydown=${() => {
                 //(fontRef.value as HTMLSelectElement).selectedIndex = 0
-                setTimeout(() => displayFonts(editor, config, fontsList));
+                setTimeout(() => displayFonts(editor, config, fontsList))
               }}
             />
             <select
@@ -184,8 +184,8 @@ function displayFonts(editor, config, fontsList) {
                   config,
                   fonts,
                   activeFonts[fontRef.value.selectedIndex],
-                );
-                displayFonts(editor, config, fontsList);
+                )
+                displayFonts(editor, config, fontsList)
               }}
             >
               ${editor.I18n.t('grapesjs-fonts.Add font')}
@@ -212,8 +212,8 @@ function displayFonts(editor, config, fontsList) {
                         name="name"
                         .value=${live(f.value)}
                         @change=${(e) => {
-                          updateRules(editor, fonts, f, e.target.value);
-                          displayFonts(editor, config, fontsList);
+                          updateRules(editor, fonts, f, e.target.value)
+                          displayFonts(editor, config, fontsList)
                         }}
                       />
                     </fieldset>
@@ -239,8 +239,8 @@ function displayFonts(editor, config, fontsList) {
                                   f,
                                   v,
                                   e.target.checked,
-                                );
-                                displayFonts(editor, config, fontsList);
+                                )
+                                displayFonts(editor, config, fontsList)
                               }}
                             /><label for=${f.name + v}>${v}</label>
                           </div>
@@ -253,8 +253,8 @@ function displayFonts(editor, config, fontsList) {
                       class="silex-button"
                       type="button"
                       @click=${() => {
-                        removeFont(editor, fonts, f);
-                        displayFonts(editor, config, fontsList);
+                        removeFont(editor, fonts, f)
+                        displayFonts(editor, config, fontsList)
                       }}
                     >
                       ${editor.I18n.t('grapesjs-fonts.Remove')}
@@ -268,8 +268,8 @@ function displayFonts(editor, config, fontsList) {
           <select
             name="fonts"
             @change=${(e) => {
-              globalFont = e.target.value;
-              console.log(globalFont);
+              globalFont = e.target.value
+              console.log(globalFont)
             }}
           >
             <option value="null">select</option>
@@ -297,51 +297,51 @@ function displayFonts(editor, config, fontsList) {
       </form>
     `,
     el,
-  );
+  )
 }
 
 function addFont(editor, config, fonts, font) {
-  const name = font.family;
-  const value = `"${font.family}", ${font.category}`;
-  fonts.push({ name, value, variants: [] });
+  const name = font.family
+  const value = `"${font.family}", ${font.category}`
+  fonts.push({ name, value, variants: [] })
 }
 
 function removeFont(editor, fonts, font) {
-  const idx = fonts.findIndex((f) => f === font);
-  fonts.splice(idx, 1);
+  const idx = fonts.findIndex((f) => f === font)
+  fonts.splice(idx, 1)
 }
 
 function insertOnce(doc, attr, tag, attributes) {
   if (!doc.head.querySelector(`[${attr}]`)) {
-    insert(doc, attr, tag, attributes);
+    insert(doc, attr, tag, attributes)
   }
 }
 function insert(doc, attr, tag, attributes) {
-  const el = doc.createElement(tag);
-  el.setAttribute(attr, '');
+  const el = doc.createElement(tag)
+  el.setAttribute(attr, '')
   Object.keys(attributes).forEach((key) =>
     el.setAttribute(key, attributes[key]),
-  );
-  doc.head.appendChild(el);
+  )
+  doc.head.appendChild(el)
 }
 function removeAll(doc, attr) {
-  Array.from(doc.head.querySelector(`[${attr}]`)).forEach((el) => el.remove());
+  Array.from(doc.head.querySelector(`[${attr}]`)).forEach((el) => el.remove())
 }
-const GOOGLE_APIS_ATTR = 'data-silex-google-apis';
-const GSTATIC_ATTR = 'data-silex-gstatic';
-const GOOGLE_FONTS_ATTR = 'data-silex-gstatic';
+const GOOGLE_APIS_ATTR = 'data-silex-google-apis'
+const GSTATIC_ATTR = 'data-silex-gstatic'
+const GOOGLE_FONTS_ATTR = 'data-silex-gstatic'
 function updateHead(editor, fonts) {
-  const doc = editor.Canvas.getDocument();
+  const doc = editor.Canvas.getDocument()
   insertOnce(doc, GOOGLE_APIS_ATTR, 'link', {
     href: 'https://fonts.googleapis.com',
     rel: 'preconnect',
-  });
+  })
   insertOnce(doc, GSTATIC_ATTR, 'link', {
     href: 'https://fonts.gstatic.com',
     rel: 'preconnect',
     crossorigin: '',
-  });
-  removeAll(doc, GOOGLE_FONTS_ATTR);
+  })
+  removeAll(doc, GOOGLE_FONTS_ATTR)
 
   // FIXME: how to use google fonts v2?
   // google fonts V2: https://developers.google.com/fonts/docs/css2
@@ -358,21 +358,21 @@ function updateHead(editor, fonts) {
   // Google fonts v1
   // https://developers.google.com/fonts/docs/getting_started#a_quick_example
   fonts.forEach((f) => {
-    const prefix = f.variants.length ? ':' : '';
+    const prefix = f.variants.length ? ':' : ''
     const variants =
       prefix +
       f.variants
         .map((v) => v.replace(/\d+/g, ''))
         .filter((v) => !!v)
-        .join(',');
+        .join(',')
     insert(doc, GOOGLE_FONTS_ATTR, 'link', {
       href: `https://fonts.googleapis.com/css?family=${f.name.replace(
         / /g,
         '+',
       )}${variants}&display=swap`,
       rel: 'stylesheet',
-    });
-  });
+    })
+  })
 
   // only if user select any global font
   if (globalFont !== undefined) {
@@ -380,29 +380,29 @@ function updateHead(editor, fonts) {
     doc.head.insertAdjacentHTML(
       'beforeend',
       `<style>*{font-family: ${globalFont}}</style>`,
-    );
+    )
     // add font to style while exporting
-    editor.Css.setRule('*', { 'font-family': `${globalFont}` });
+    editor.Css.setRule('*', { 'font-family': `${globalFont}` })
   }
 }
 
 function updateUi(editor, fonts, opts) {
-  const styleManager = editor.StyleManager;
-  const fontProperty = styleManager.getProperty('typography', 'font-family');
+  const styleManager = editor.StyleManager
+  const fontProperty = styleManager.getProperty('typography', 'font-family')
   if (opts.preserveDefaultFonts) {
-    fonts = defaults.concat(fonts);
+    fonts = defaults.concat(fonts)
   } else if (fonts.length === 0) {
-    fonts = defaults;
+    fonts = defaults
   }
-  fontProperty.setOptions(fonts);
+  fontProperty.setOptions(fonts)
 }
 
 function updateRules(editor, fonts, font, value) {
-  font.value = value;
+  font.value = value
 }
 function updateVariant(editor, fonts, font, variant, checked) {
-  const has = font.variants?.includes(variant);
+  const has = font.variants?.includes(variant)
   if (has && !checked)
-    font.variants = font.variants.filter((v) => v !== variant);
-  else if (!has && checked) font.variants.push(variant);
+    font.variants = font.variants.filter((v) => v !== variant)
+  else if (!has && checked) font.variants.push(variant)
 }
